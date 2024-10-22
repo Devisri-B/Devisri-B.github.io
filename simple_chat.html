@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .chat-container {
+            background-color: #fff;
+            width: 400px;
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .chat-box {
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .chat-box .message {
+            margin-bottom: 20px;
+        }
+        .message.bot {
+            text-align: left;
+        }
+        .message.user {
+            text-align: right;
+        }
+        .message p {
+            padding: 10px;
+            border-radius: 5px;
+            display: inline-block;
+        }
+        .message.bot p {
+            background-color: #f1f1f1;
+        }
+        .message.user p {
+            background-color: #007bff;
+            color: #fff;
+        }
+        .input-area {
+            display: flex;
+            border-top: 1px solid #ccc;
+            padding: 10px;
+        }
+        .input-area input {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            outline: none;
+            font-size: 16px;
+        }
+        .input-area button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #007bffee; 
+            color: #fff;
+            cursor: pointer;
+        }
+        .chat-box button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            margin: 5px 0;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .chat-box button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="chat-container">
+        <div class="chat-box" id="chat-box"></div>
+        <div class="input-area">
+            <input type="text" id="userInput" placeholder="Type your message..." />
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const chatBox = document.getElementById('chat-box');
+
+        // Append messages to chat box
+        function appendMessage(sender, message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', sender);
+            messageDiv.innerHTML = `<p>${message}</p>`;
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;  // Scroll to the bottom
+        }
+
+        // Send user message to backend
+        function sendMessage() {
+            const userInput = document.getElementById('userInput');
+            const message = userInput.value.trim();
+            if (message) {
+                appendMessage('user', message);
+                userInput.value = '';
+
+                // Send the message to the Flask backend
+                fetch('http://127.0.0.1:5000/chat', {  
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const botReply = data.response;
+                    appendMessage('bot', botReply);
+                    addButtonListeners();  // Add listeners for buttons
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
+            }
+        }
+
+        // Function to send button-based message
+        function handleButtonClick(buttonMessage) {
+            appendMessage('user', buttonMessage);
+
+            // Send the button selection message to the Flask backend
+            fetch('http://127.0.0.1:5000/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: buttonMessage }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                const botReply = data.response;
+                appendMessage('bot', botReply);
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+        }
+
+        // Add event listeners to dynamically created buttons in bot reply
+        function addButtonListeners() {
+            const buttons = document.querySelectorAll('.bot button');
+            buttons.forEach(button => {
+                button.addEventListener('click', function() {
+                    handleButtonClick(button.innerText);
+                });
+            });
+        }
+    </script>
+
+</body>
+</html>
